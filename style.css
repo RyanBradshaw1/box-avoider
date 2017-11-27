@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css?family=Kelly+Slab');
+
+* {
+  box-sizing: border-box;
+  font-family: 'Kelly Slab', cursive;
+  image-rendering: pixelated;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  background: #303030;
+  color: lime;
+  image-rendering: pixelated;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 16px black;
+  border-radius: 16px;
+  padding: 32px;
+}
+
+.game-title-text {
+  margin: 0;
+}
+
+.game-canvas {
+
+}
+
+.game-credits-text {
+  margin: 0;
+}
