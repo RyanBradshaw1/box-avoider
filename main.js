@@ -7,9 +7,7 @@ const KEY_RIGHT = 39
 
 const game = {
   canvas: undefined,
-
   
-
   init () {
     game.score = 0
     game.input = {
@@ -61,7 +59,7 @@ const game = {
         },
 
         render (renderingContext) {
-          renderingContext.translate(box.x, box,y)
+          renderingContext.translate(box.x, box.y)
           renderingContext.fillRect(
             -box.halfWidth,
             -box.halfHeight,
@@ -76,8 +74,8 @@ const game = {
 
     game.boxes = [
       game.spawnBox({
-        x: 100,
-        y: 100,
+        x: SCREEN_WIDTH * 0.25,
+        y: SCREEN_HEIGHT * 0.25,
         vx: 60,
         vy: 60,
         width: 48,
@@ -228,7 +226,7 @@ const boot = () => {
 
   game.init && game.init()
 
-  let lastTime = 0
+  let lastTime = Date.now()
   const mainLoop = elapsedTime => {
     const currentTime = Date.now()
     const deltaTime = (currentTime - lastTime) * 0.001
