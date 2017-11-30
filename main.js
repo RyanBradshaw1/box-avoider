@@ -1,9 +1,16 @@
 const SCREEN_WIDTH = 640
 const SCREEN_HEIGHT = 400
+
+const GS_TITLE = 'title'
+const GS_PLAY = 'play'
+const GS_GAMEOVER = 'gameover'
+
 const KEY_UP = 38
 const KEY_DOWN = 40
 const KEY_LEFT = 37
 const KEY_RIGHT = 39
+const KEY_SPACE = 32
+const KEY_ESCAPE = 27
 
 const game = {
   canvas: undefined,
@@ -11,8 +18,11 @@ const game = {
   init () {
     game.score = 0
     game.input = {
-      keys: {}
+      keys: {},
+      keysPressed: {}
     }
+
+    game.state = GS_TITLE
     
     window.addEventListener('keydown', event => {
       game.input.keys[event.keyCode] = true
@@ -76,8 +86,8 @@ const game = {
       game.spawnBox({
         x: SCREEN_WIDTH * 0.25,
         y: SCREEN_HEIGHT * 0.25,
-        vx: 60,
-        vy: 60,
+        vx: 6,
+        vy: 6,
         width: 48,
         height: 48
       })
@@ -104,8 +114,62 @@ const game = {
       speed: 150,
       vx: 0, // velocity of 'x'
       vy: 0, // velocity of 'y'
+
+      checkCollisionAgainstBoxes () {
+        const playerLeft = game.player.x - game.player.halfWidth
+        const playerTop = game.player.y - game.player.halfHeight
+        const playerRight = game.player.x + game.player.halfWidth
+        const playerBottom = game.player.y + game.player.halfHeight
+
+        const boxCount = game.boxes.length
+        let collision = false
+
+        for (let i = 0; i < boxCount; i++) {
+          const box = game.boxes[i]
+
+          const boxLeft = box.x - box.halfWidth
+          const boxTop = box.y - box.halfHeight
+          const boxRight = box.x + box.halfWidth
+          const boxBottom = box.y + box.halfHeight
+
+          if (!(
+            (playerBottom < boxTop) || // player bottom above box top
+            (playerTop > boxBottom) || // player top under box bottom
+            (playerLeft > boxRight) || // player left to the right of box right
+            (playerRight < boxLeft)    // player right to the left of box left
+          )) {
+            collision = true
+            break
+          }
+        }
+        return collision
+      },
+
+      
+      /*
+      another way to write the same thing
+      if (
+        (playerBottom >= boxTop) && // player bottom under box top
+        (playerTop <= boxBottom) && // player top above box bottom
+        (playerLeft <= boxRight) && // player left to the left of box right
+        (playerRight >= boxLeft)     // player right to the right of box left
+        ) {
+          collision = true
+          break
+        }
+      }
+      return collision
+    },
+    */
     
       update (deltaTime) {
+        const collision = game.player.checkCollisionAgainstBoxes()
+
+        if (collision) {
+          game.score = 0
+          return
+        }
+        
         // reset player velocity
         game.player.vx = 0
         game.player.vy = 0
