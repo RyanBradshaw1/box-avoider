@@ -166,8 +166,7 @@ const game = {
         const collision = game.player.checkCollisionAgainstBoxes()
 
         if (collision) {
-          game.score = 0
-          return
+          game.state = GS_GAMEOVER
         }
         
         // reset player velocity
@@ -264,18 +263,72 @@ const game = {
   },
 
   update (deltaTime) {
-    game.player.update(deltaTime)
-    game.scoreTimer.update(deltaTime) 
-    game.updateBoxes(deltaTime)
+    if (game.state === GS_TITLE) {
+      if (game.input.keys[KEY_SPACE] && !game.input.keysPressed[KEY_SPACE]) {
+        game.input.keysPressed[KEY_SPACE] = true
+      } else if (!game.input.keys[KEY_SPACE] && game.input.keysPressed[KEY_SPACE]) {
+        game.input.keysPressed[KEY_SPACE] = false
+        game.score = 0
+        game.state = GS_PLAY
+      }
+    } else if (game.state === GS_PLAY) {
+      game.player.update(deltaTime)
+      game.scoreTimer.update(deltaTime)
+      game.updateBoxes(deltaTime)
+    } else if (game.state === GS_GAMEOVER) {
+      if (game.input.keys[KEY_SPACE] && !game.input.keysPressed[KEY_SPACE]) {
+        game.input.keysPressed[KEY_SPACE] = true
+      } else if (!game.input.keys[KEY_SPACE] && game.input.keysPressed[KEY_SPACE]) {
+        game.input.keysPressed[KEY_SPACE] = false
+        game.state = GS_TITLE
+        game.player.x = 16
+        game.player.y = 16
+      }
+    }
   },
 
   render (renderingContext) {
     renderingContext.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
-    game.player.render(renderingContext)
-    game.scoreTimer.render(renderingContext)
-    game.renderBoxes(renderingContext)
+
+    if (game.state === GS_TITLE) {
+      renderingContext.fillStyle = 'lime'
+      renderingContext.font = '24px "Kelly Slab"'
+
+      renderingContext.fillText(
+        'Press SPACE to play',
+        SCREEN_WIDTH * 0.5,
+        SCREEN_HEIGHT * 0.5
+      )
+    } else if (game.state === GS_PLAY) {
+      game.player.render(renderingContext)
+      game.scoreTimer.render(renderingContext)
+      game.renderBoxes(renderingContext)
+    } else if (game.state === GS_GAMEOVER) {
+      // render game elements
+      game.scoreTimer.render(renderingContext)
+      game.renderBoxes(renderingContext)
+      game.player.render(renderingContext)
+
+      //dim the screen
+      renderingContext.save()
+      renderingContext.globalAlpha = 0.5
+      renderingContext.fillStyle = 'black'
+      renderingContext.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
+      renderingContext.restore()
+
+      // write the text
+      const oldFont = renderingContext.font
+      renderingContext.fillStyle = 'red'
+      renderingContext.font = '48px "Kelly Slab"'
+      renderingContext.fillText(
+        'GAME OVER',
+        SCREEN_WIDTH * 0.5,
+        SCREEN_HEIGHT * 0.65
+      )
+    }
   }
 }
+
 
 
 const boot = () => {
