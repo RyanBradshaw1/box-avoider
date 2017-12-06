@@ -14,15 +14,94 @@ const KEY_ESCAPE = 27
 
 const game = {
   canvas: undefined,
+
+  spawnBox ({ x, y, vx, vy, width, height, ai }) {
+    const box = {
+      x,
+      y,
+      vx,
+      vy,
+      width,
+      height,
+      get halfWidth () { return box.width / 2},
+      get halfHeight () { return box.height / 2},
+
+      reset () {
+        box.x = x
+        box.y = y
+        box.vx = vx
+        box.vy = vy
+        box.width = width,
+        box.height = height
+      },
+
+      update (deltaTime) {
+        ai && ai.update && ai.update(deltaTime)
+      },
+
+      render (renderingContext) {
+        renderingContext.translate(box.x, box.y)
+        renderingContext.fillRect(
+          -box.halfWidth,
+          -box.halfHeight,
+          box.width,
+          box.height
+        )
+        renderingContext.translate(-box.x, -box.y)
+      }
+    }
+
+    ai && ai.attach && ai.attach(box)
+
+    return box
+  },
   
   init () {
+    game.state = GS_TITLE
     game.score = 0
+
+    const bouncingBoxAI = () => {
+      const ai = {
+        box: undefined,
+
+        attach(box) {
+          ai.box = box
+        },
+
+        update (deltaTime) {
+          const { box } = ai
+          if (!box) {
+            return
+          }
+
+          const offBottomEdge = (box.y + box.halfHeight) > SCREEN_HEIGHT
+          const offTopEdge = (box.y - box.halfHeight) < 0
+          const offLeftEdge = (box.x - box.halfWidth) < 0
+          const offRightEdge = (box.x + box.halfWidth) > SCREEN_WIDTH
+
+          box.y += box.vy * deltaTime
+          box.x += box.vx * deltaTime
+
+          if(offBottomEdge || offTopEdge) {
+            box.vy = -box.vy
+            box.y += box.vy * deltaTime
+            box.y += box.vy * deltaTime
+          }
+
+          if(offLeftEdge || offRightEdge) {
+            box.vx = -box.vx
+            box.x += box.vx * deltaTime
+            box.x += box.vx * deltaTime
+          }
+        }
+      }
+      return ai
+    }
+
     game.input = {
       keys: {},
       keysPressed: {}
     }
-
-    game.state = GS_TITLE
     
     window.addEventListener('keydown', event => {
       game.input.keys[event.keyCode] = true
@@ -48,48 +127,39 @@ const game = {
 
       render (renderingContext) {
         // render score at top of screen
+        renderingContext.fillStyle = 'lime'
+        renderingContext.font = '24px "Kelly Slab"'
         renderingContext.fillText(`SCORE: ${game.score}`, SCREEN_WIDTH * 0.5, 16)
       }
-    }
-
-    game.spawnBox = ({ x, y, vx, vy, width, height }) => {
-      const box = {
-        x,
-        y,
-        vx,
-        vy,
-        width,
-        height,
-        get halfWidth () { return box.width / 2},
-        get halfHeight () { return box.height / 2},
-
-        update (deltaTime) {
-          box.y += box.vy * deltaTime
-          box.x += box.vx * deltaTime
-        },
-
-        render (renderingContext) {
-          renderingContext.translate(box.x, box.y)
-          renderingContext.fillRect(
-            -box.halfWidth,
-            -box.halfHeight,
-            box.width,
-            box.height
-          )
-          renderingContext.translate(-box.x, -box.y)
-        }
-      }
-      return box
     }
 
     game.boxes = [
       game.spawnBox({
         x: SCREEN_WIDTH * 0.25,
         y: SCREEN_HEIGHT * 0.25,
-        vx: 6,
-        vy: 6,
+        vx: 200,
+        vy: 200,
         width: 48,
-        height: 48
+        height: 48,
+        ai: bouncingBoxAI()
+      }),
+      game.spawnBox({
+        x: SCREEN_WIDTH * 0.75,
+        y: SCREEN_HEIGHT * 0.45,
+        vx: -200,
+        vy: 200,
+        width: 48,
+        height: 48,
+        ai: bouncingBoxAI()
+      }),
+      game.spawnBox({
+        x: SCREEN_WIDTH * 0.35,
+        y: SCREEN_HEIGHT * 0.94,
+        vx: 300,
+        vy: -300,
+        width: 24,
+        height: 24,
+        ai: bouncingBoxAI()
       })
     ]
 
@@ -105,8 +175,8 @@ const game = {
     }
 
     game.player = {
-      x: 16,
-      y: 16,
+      x: SCREEN_WIDTH * 0.01,
+      y: SCREEN_HEIGHT * 0.01,
       width: 32,
       height: 32,
       halfWidth: 16,
@@ -114,6 +184,11 @@ const game = {
       speed: 150,
       vx: 0, // velocity of 'x'
       vy: 0, // velocity of 'y'
+
+      reset (player) {
+        player.x = SCREEN_WIDTH * 0.01,
+        player.y = SCREEN_HEIGHT * 0.01
+      },
 
       checkCollisionAgainstBoxes () {
         const playerLeft = game.player.x - game.player.halfWidth
@@ -268,6 +343,8 @@ const game = {
         game.input.keysPressed[KEY_SPACE] = true
       } else if (!game.input.keys[KEY_SPACE] && game.input.keysPressed[KEY_SPACE]) {
         game.input.keysPressed[KEY_SPACE] = false
+        game.player.reset.bind(null, game.player)()
+        game.boxes.forEach(box => box.reset.bind(null, box)())
         game.score = 0
         game.state = GS_PLAY
       }
@@ -281,8 +358,6 @@ const game = {
       } else if (!game.input.keys[KEY_SPACE] && game.input.keysPressed[KEY_SPACE]) {
         game.input.keysPressed[KEY_SPACE] = false
         game.state = GS_TITLE
-        game.player.x = 16
-        game.player.y = 16
       }
     }
   },
@@ -319,9 +394,15 @@ const game = {
       // write the text
       const oldFont = renderingContext.font
       renderingContext.fillStyle = 'red'
-      renderingContext.font = '48px "Kelly Slab"'
+      renderingContext.font = '42px "Kelly Slab"'
       renderingContext.fillText(
         'GAME OVER',
+        SCREEN_WIDTH * 0.5,
+        SCREEN_HEIGHT * 0.5
+      )
+      renderingContext.font = '24px "Kelly Slab"'
+      renderingContext.fillText(
+        'Press SPACE to return to main menu',
         SCREEN_WIDTH * 0.5,
         SCREEN_HEIGHT * 0.65
       )
