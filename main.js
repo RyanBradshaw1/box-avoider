@@ -15,6 +15,15 @@ const KEY_ESCAPE = 27
 const game = {
   canvas: undefined,
 
+  saveHighScore (score) {
+    game.highScore = score
+    window.localStorage.setItem('highScore', `${score}`)
+  },
+
+  loadHighScore () {
+    return ~~(window.localStorage.getItem('highScore')) || 0
+  },
+
   spawnBox ({ x, y, vx, vy, width, height, ai }) {
     const box = {
       x,
@@ -59,6 +68,8 @@ const game = {
   init () {
     game.state = GS_TITLE
     game.score = 0
+    game.highScore = game.loadHighScore()
+    
 
     const bouncingBoxAI = () => {
       const ai = {
@@ -113,6 +124,7 @@ const game = {
 
     game.scoreTimer = {
       time: 0,
+      paused: false,
 
       update (deltaTime) {
         // add elapsed time to total time
@@ -349,6 +361,36 @@ const game = {
         game.state = GS_PLAY
       }
     } else if (game.state === GS_PLAY) {
+      if (game.scoreTimer.paused) {
+        // unpause when space is pressed while score is paused
+        if (game.input.keys[KEY_SPACE] && !game.input.keysPressed[KEY_SPACE]) {
+          game.input.keysPressed[KEY_SPACE] = true
+        } else if (!game.input.keys[KEY_SPACE] && game.input.keysPressed[KEY_SPACE]) {
+          game.input.keysPressed[KEY_SPACE] = false
+          game.scoreTimer.paused = false
+        }
+        
+        // quit to title when esc is pressed while score is paused
+        if (game.input.keys[KEY_ESCAPE] && !game.input.keysPressed[KEY_ESCAPE]) {
+          game.input.keysPressed[KEY_ESCAPE] = true
+        } else if (!game.input.keys[KEY_ESCAPE] && game.input.keysPressed[KEY_ESCAPE]) {
+          game.input.keysPressed[KEY_ESCAPE] = false
+          game.state = GS_TITLE
+        }
+      } else {
+        game.player.update(deltaTime)
+        game.scoreTimer.update(deltaTime)
+        game.updateBoxes(deltaTime)
+        
+        //pause game when space is pressed
+        if (game.input.keys[KEY_SPACE] && !game.input.keysPressed[KEY_SPACE]) {
+          game.input.keysPressed[KEY_SPACE] = true
+        } else if (!game.input.keys[KEY_SPACE] && game.input.keysPressed[KEY_SPACE]) {
+          game.input.keysPressed[KEY_SPACE] = false
+          game.scoreTimer.paused = true
+        }
+      }
+
       game.player.update(deltaTime)
       game.scoreTimer.update(deltaTime)
       game.updateBoxes(deltaTime)
@@ -357,6 +399,9 @@ const game = {
         game.input.keysPressed[KEY_SPACE] = true
       } else if (!game.input.keys[KEY_SPACE] && game.input.keysPressed[KEY_SPACE]) {
         game.input.keysPressed[KEY_SPACE] = false
+        if(game.score > game.highScore) {
+          game.saveHighScore(game.score)
+        }
         game.state = GS_TITLE
       }
     }
@@ -366,6 +411,12 @@ const game = {
     renderingContext.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
 
     if (game.state === GS_TITLE) {
+      if (game.highScore) {
+        renderingContext.font = '18px "Kelly Slab"'
+        renderingContext.fillText(
+          `HIGH SCORE: ${game.highScore}`, SCREEN_WIDTH * 0.1, SCREEN_HEIGHT * 0.95
+        )
+      }
       renderingContext.fillStyle = 'lime'
       renderingContext.font = '24px "Kelly Slab"'
 
@@ -375,10 +426,24 @@ const game = {
         SCREEN_HEIGHT * 0.5
       )
     } else if (game.state === GS_PLAY) {
+      if (game.highScore) {
+        renderingContext.font = '18px "Kelly Slab"'
+        renderingContext.fillText(
+          `HIGH SCORE: ${game.highScore}`, SCREEN_WIDTH * 0.1, SCREEN_HEIGHT * 0.95
+        )
+      }
       game.player.render(renderingContext)
       game.scoreTimer.render(renderingContext)
       game.renderBoxes(renderingContext)
+
     } else if (game.state === GS_GAMEOVER) {
+      if (game.highScore) {
+        renderingContext.font = '18px "Kelly Slab"'
+        renderingContext.fillStyle = 'lime'
+        renderingContext.fillText(
+          `HIGH SCORE: ${game.highScore}`, SCREEN_WIDTH * 0.1, SCREEN_HEIGHT * 0.95
+        )
+      }
       // render game elements
       game.scoreTimer.render(renderingContext)
       game.renderBoxes(renderingContext)
