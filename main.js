@@ -128,12 +128,14 @@ const game = {
 
       update (deltaTime) {
         // add elapsed time to total time
-        game.scoreTimer.time += deltaTime
+        if (!game.scoreTimer.paused) {
+          game.scoreTimer.time += deltaTime
 
-        // when accumulated time reaches 1 second, reset time and increment score
-        if (game.scoreTimer.time >= 1) {
-          game.scoreTimer.time -= 1
-          game.score += 1
+          // when accumulated time reaches 1 second, reset time and increment score
+          if (game.scoreTimer.time >= 1) {
+            game.scoreTimer.time -= 1
+            game.score += 1
+          }
         }
       },
 
